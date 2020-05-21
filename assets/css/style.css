@@ -269,6 +269,8 @@ section #title .credits { font-size: 11px; font-family: 'OpenSansRegular', "Helv
 section #title .credits.left { float: left; }
 section #title .credits.right { float: right; }
 
+section #AI { text-align:center; }
+
 @media print, screen and (max-width: 720px) { #title .credits { display: block; width: 100%; line-height: 30px; text-align: center; }
   #title .credits .left { float: none; display: block; }
   #title .credits .right { float: none; display: block; } }
