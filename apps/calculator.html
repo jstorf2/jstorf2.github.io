@@ -102,72 +102,83 @@
 </body>
 
 <script>
-	previous_num = 0;
-	current_num = 0;
+	previous_num = "";
+	current_num = "";
 	sign = -1;  //0 is +, 1 is -, 2 is *, and 3 is /
 	calculatedResults = false;  //Boolean to tell the program that it calculated the results
 	allowCalculateResults = false;  //Boolean to tell the program it is ready for the expression to be calculated
+	alreadyHasDecimal = false;
 	
 
 	function button_press(button_pressed) {
 		//This function is called anytime a button on the calculator is pressed
 		if(document.getElementById("text").innerHTML == "ERROR") {
 			//If there was an error reset everything
-			current_num = 0;
-			previous_num = 0;
+			current_num = "";
+			previous_num = "";
 			sign = -1;
 			calculatedResults = false;
 			allowCalculateResults = false;
+			alreadyHasDecimal = false;
 		}
 		switch(button_pressed) {
 			case 'c':
 				//Reset everything if the clear button is pressed
-				current_num = 0;
-				previous_num = 0;
+				current_num = "";
+				previous_num = "";
 				sign = -1;
 				calculatedResults = false;
 				allowCalculateResults = false;
+				alreadyHasDecimal = false;
 				display_number(current_num);
 				break;
 			case 0:
-				current_num = current_num * 10 + 0;
+				if(current_num != "") {
+					current_num = current_num.concat('0');
+				}
 				display_number(current_num);
 				break;
 			case 1:
-				current_num = current_num * 10 + 1;
+				current_num = current_num.concat('1');
 				display_number(current_num);
 				break;
 			case 2:
-				current_num = current_num * 10 + 2;
+				current_num = current_num.concat('2');
 				display_number(current_num);
 				break;
 			case 3:
-				current_num = current_num * 10 + 3;
+				current_num = current_num.concat('3');
 				display_number(current_num);
 				break;
 			case 4:
-				current_num = current_num * 10 + 4;
+				current_num = current_num.concat('4');
 				display_number(current_num);
 				break;
 			case 5:
-				current_num = current_num * 10 + 5;
+				current_num = current_num.concat('5');
 				display_number(current_num);
 				break;
 			case 6:
-				current_num = current_num * 10 + 6;
+				current_num = current_num.concat('6');
 				display_number(current_num);
 				break;
 			case 7:
-				current_num = current_num * 10 + 7;
+				current_num = current_num.concat('7');
 				display_number(current_num);
 				break;
 			case 8:
-				current_num = current_num * 10 + 8;
+				current_num = current_num.concat('8');
 				display_number(current_num);
 				break;
 			case 9:
-				current_num = current_num * 10 + 9;
+				current_num = current_num.concat('9');
 				display_number(current_num);
+				break;
+			case '.':
+				if(!alreadyHasDecimal) {
+					current_num = current_num.concat('.');
+					alreadyHasDecimal = true;
+				}
 				break;
 			case '+':
 				//This if statement is used to check if there are two number that were entered.  If so calculate the results.
@@ -175,9 +186,10 @@
 					calcResults();
 				} else {
 					allowCalculateResults = true;
+					alreadyHasDecimal = false;
 					previous_num = current_num;
 					display_number(current_num);
-					current_num = 0;
+					current_num = "";
 				}
 				sign = 0;
 				break;
@@ -187,9 +199,10 @@
 					calcResults();
 				} else {
 					allowCalculateResults = true;
+					alreadyHasDecimal = false;
 					previous_num = current_num;
 					display_number(current_num);
-					current_num = 0;
+					current_num = "";
 				}
 				sign = 1;
 				break;
@@ -199,9 +212,10 @@
 					calcResults();
 				} else {
 					allowCalculateResults = true;
+					alreadyHasDecimal = false;
 					previous_num = current_num;
 					display_number(current_num);
-					current_num = 0;
+					current_num = "";
 				}
 				sign = 2;
 				break;
@@ -211,9 +225,10 @@
 					calcResults();
 				} else {
 					allowCalculateResults = true;
+					alreadyHasDecimal = false;
 					previous_num = current_num;
 					display_number(current_num);
-					current_num = 0;
+					current_num = "";
 				}
 				sign = 3;
 				break;
@@ -229,40 +244,59 @@
 		if(calculatedResults) {
 			//If the results were calculated then set the number that was calculated to be the first part of the expression.
 			previous_num = current_num;
-			current_num = 0;
+			current_num = "";
 			calculatedResults = false;
+			alreadyHasDecimal = false;
 		}
 	}
 	
 	function calcResults() {
 		switch(sign) {
 			case 0:
-				current_num = previous_num + current_num;
+				current_num = parseFloat(previous_num) + parseFloat(current_num);
 				break;
 			case 1:
-				current_num = previous_num - current_num;
+				current_num = parseFloat(previous_num) - parseFloat(current_num);
 				break;
 			case 2:
-				current_num = previous_num * current_num;
+				current_num = parseFloat(previous_num) * parseFloat(current_num);
 				break;
 			case 3:
-				current_num = previous_num / current_num;
+				current_num = parseFloat(previous_num) / parseFloat(current_num);
+				break;
+			default:
+				document.getElementById("text").innerHTML = "ERROR";
 				break;
 		}
+		current_num = current_num.toString();
 		display_number(current_num);
 		calculatedResults = true;
 	}
 	
 	function display_number(num) {
+		if(num == "") {
+			document.getElementById("text").innerHTML = 0;
+		}
+	
 		//This function is used to make sure there isn't an overflow and if there is display the number in exponential form.
-		if(num / Math.pow(10,100) > 1) {
-			//If the number is way too big.  This would be 10^100 or greater
-			document.getElementById("text").innerHTML = "ERROR";
-		} else if(num / Math.pow(10,13) > 1) {
-			//If the number is too big to show on the display put it into exponential form.  This would be 10^13 or greater.
-			document.getElementById("text").innerHTML = current_num.toExponential(7);
+		if(screen.width >= 400) {
+			maxAllowedDisplay = 13;
+			numsToShow = 7;
 		} else {
-			document.getElementById("text").innerHTML = current_num;
+			maxAllowedDisplay = 11;
+			numsToShow = 5;
+		}
+		
+		numInNumForm = parseFloat(num);  //Used to put the number into float form instead of string
+		
+		if(numInNumForm / Math.pow(10,100) > 1) {
+			//If the number is way too big. This would be equal to or greater than 10^100
+			document.getElementById("text").innerHTML = "ERROR";
+		} else if(num.length > maxAllowedDisplay) {
+			//If the number is too big to show on the display put it into exponential form.
+			document.getElementById("text").innerHTML = numInNumForm.toExponential(numsToShow);
+		} else if(num != ""){
+			document.getElementById("text").innerHTML = num;
 		}
 	}
 </script>
