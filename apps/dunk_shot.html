@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>Joseph Storf | Portfolio/Website to document projects that I have done.</title>
+<meta name="generator" content="Jekyll v3.8.5" />
+<meta property="og:title" content="My Website" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Website to test out HTML, CSS, Markdown, and other technologies" />
+<meta property="og:description" content="Website to test out HTML, CSS, Markdown, and other technologies" />
+<link rel="canonical" href="http://localhost:4000/testing.html" />
+<meta property="og:url" content="http://localhost:4000/testing.html" />
+<meta property="og:site_name" content="My Website" />
+<script type="application/ld+json">
+{"url":"http://localhost:4000/testing.html","description":"Website to test out HTML, CSS, Markdown, and other technologies","@type":"WebPage","headline":"My Website","@context":"https://schema.org"}</script>
+<script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="My Website" /></head>
+<body>
+	<header class="site-header" role="banner">
+
+		<div class="wrapper"><a class="site-title" rel="author" href="/">Joseph Storf</a><nav class="site-nav">
+			<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+			<label for="nav-trigger">
+			  <span class="menu-icon">
+				<svg viewBox="0 0 18 15" width="18px" height="15px">
+				  <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+				</svg>
+			  </span>
+			</label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About</a></div>
+		</nav></div>
+	</header>
+	
+	<main class="page-content" aria-label="Content">
+    <div class="wrapper">
+      <h1 class="post_title" style="text-align:center;">Dunk Shot Automation</h1>
+      <p style="text-align: center;"><a href="https://github.com/jstorf2/AutoGames/tree/master/dunkshot">GitHub Repository</a></p>
+      <p>
+          This is a <b>Python</b> script that I made to automate the playing of a game called Dunk Shot.&nbsp;
+          Dunk Shot is a game where you shoot basketballs from one hoop to another.&nbsp; These
+          hoops could be moving or standing still.&nbsp; There are also obstacles you have to 
+          avoid.&nbsp; Below is a video of the script in action.&nbsp; Below that is a
+          description of how the script works.
+      </p>
+      <div class="showcase_video"><iframe width="560" height="315" src="https://www.youtube.com/embed/FPjrj6N32yI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+      <h2>Connecting and getting pixel information from phone</h2>
+      <p>
+          The first thing the script does is connect to an Android phone through a USB connection using
+          a Python library called <b>ppadb</b>.&nbsp; This stands for "pure python android debug bridge".&nbsp;
+          <b>ppadb</b> contains functions to connect to an Android phone using the <b>adb</b> provided by
+          Google.
+      </p>
+      <pre class="prettyprint"><code class="prettyprint">
+abd = Client(host="127.0.0.1", port=5037)
+devices = abd.devices()
+
+if (len(devices) == 0):
+    print("no devices")
+else:
+    device = devices[0] #Assume first device is the device needed
+      </code></pre>
+      <p>
+          Using the <b>ppadb</b> package the program can take a screenshot of the Android device and store it as
+          a png file.&nbsp; The script uses this png and converts it into a numpy array, taking only the needed 
+          rows.&nbsp; The numpy array contains pixel information stored in a red green blue opacity format.
+      </p>
+      <pre class="prettyprint"><code>
+def getPixelInformation():
+    #This function takes a device screencap and converts it into a numpy array.  Returning a image that is in (y,x) coordinates.
+    # Also known as (height, width)
+    
+    image = device.screencap()
+    with open("game.png", 'wb') as file:
+        file.write(image)
+        
+    image = Image.open('game.png')
+    image = np.array(image, dtype=np.uint8)  #convert image into numpy array for easily accessing pixel data. 
+                                             # In (y,x) coordinate system instead of (x,y)
+    
+    image = image[600:2200] #Take only the rows that matter on the screen
+    
+    return image
+      </code></pre>
+      <h2>Check if hoop is moving</h2>
+      <p>
+          The second thing the script does is check if the hoop that the program is going to aim at
+          is moving or not.&nbsp; It does that by first getting a numpy array of the pixel information by
+          calling the <b>getPixelInformation()</b> function.&nbsp; The script then finds and stores the location
+          of the first hoop pixel that it finds.&nbsp; The hoop pixels can be red or gray.&nbsp; It takes 
+          another screenshot and repeats the process.&nbsp; The program then checks if the location of the 
+          pixels it found matches up.&nbsp; If they do not that means that the hoop moves.
+      </p>
+      <pre class="prettyprint"><code>
+def findFirstPixelOccurence(rgbImage):
+    #This function finds the location of the first occurence of a pixel with a hoop color.
+
+    firstPixelLocation = [0,0]  #This is the pixel location of the first occurence of a hoop color.  These are given in x,y coordinates
+    foundPixel = False
+
+    i = 0
+    while i < len(rgbImage):  #Loop through length of screen
+        if(foundPixel):
+            break
+    
+        for j in range(len(rgbImage[0])):  #Loop through width of screen
+            currentPixel = rgbImage[i][j]
+            
+            if(checkForCorrectColor(currentPixel)):
+                #Current pixel is the correct rgb color for the rims on the screen
+                firstPixelLocation = [j,i]
+                foundPixel = True
+                break
+                
+        i += 8 #This is the number of rows to skip when reading pixels
+    
+    return firstPixelLocation
+    
+    
+def checkForMovingHoop():
+    #Checks if the hoop to aim at is moving.  It does that by taking an image and getting the hoop location.  It then takes another image
+    # and compares the new hoop location with the old.  True means the hoop is moving.
+    
+    #Do first check
+    rgbImage = getPixelInformation()
+    firstCheckLocation = findFirstPixelOccurence(rgbImage)  #This is the pixel location on the first check.  These are given in x,y coordinates
+    
+    time.sleep(.3)
+    
+    #Do second check
+    rgbImage = getPixelInformation()
+    secondCheckLocation = findFirstPixelOccurence(rgbImage)  #This is the pixel location on the second check.  These are given in x,y coordinates
+    
+    #Check if hoops are in the same location
+    if(firstCheckLocation != secondCheckLocation):
+        #Hoop has moved
+        return True
+    
+    #Hoop hasn't moved
+    return False
+      </code></pre>
+      <h2>Finding location of the hoops</h2>
+      <p>
+        After the program determines whether or not the hoop is moving, it gets the pixel information again
+        and then sends it into a function that finds the location of the middle of the hoops.&nbsp; It finds
+        these locations by looping through the pixel array and finding every occurence of a hoop pixel (a
+        red or gray pixel) and adds up the locations of them.&nbsp; After it finds the hoop pixels it divides 
+        these by the number of pixels it found so that it can get the middle(average) pixel location.
+      </p>
+      <pre class="prettyprint"><code></code>
+def findMiddleOfHoops(rgbImage):
+    #This function works by finding pixels on the rims of the hoop and averaging the coordinates to 
+    #find the middle of the hoop.
+
+    aimHoopLocation = [0,0]  #Both of these are given in x,y coordinates
+    ballHoopLocation = [0,0]
+    numOfPixelsInFirstHoop = 0  #Number of red pixels found in first hoop
+    numOfPixelsInSecondHoop = 0  #Number of red pixels found in second hoop
+    numOfHoopsCompleted = 0  #Number of hoops with all pixels found
+    foundHoop = False;  #Tells the program a hoop has been found
+    rowHasRim = False;  #Tells the program the row has rim pixels
+
+    i = 0
+    while i < len(rgbImage):  #Loop through length of screen
+        if((not rowHasRim) and foundHoop):
+            #Move to next hoop if at end of current hoop
+            numOfHoopsCompleted += 1
+            foundHoop = False
+        
+        if(numOfHoopsCompleted == 2):
+            #Exit loop after two hoops are found
+            break;
+        
+        rowHasRim = False
+        for j in range(len(rgbImage[0])):  #Loop through width of screen
+            currentPixel = rgbImage[i][j]
+            
+            if(checkForCorrectColor(currentPixel)):
+                #Current pixel is the correct rgb color for the rims on the screen
+                if(not foundHoop):
+                    #Found a hoop
+                    foundHoop = True
+                
+                if(not rowHasRim):
+                    #Current row has part of the rim
+                    rowHasRim = True
+                
+                if(numOfHoopsCompleted == 0):
+                    #Adds pixel's coordinates to the hoop to aim at
+                    aimHoopLocation[0] += j
+                    aimHoopLocation[1] += i
+                    numOfPixelsInFirstHoop += 1
+                else:
+                    #Adds pixel's coordinates of the ball hoop
+                    ballHoopLocation[0] += j
+                    ballHoopLocation[1] += i
+                    numOfPixelsInSecondHoop += 1
+        i += 3 #This is the number of rows to skip when reading pixels
+
+    #This is where the coodinates are averaged with the number of pixels found
+    aimHoopLocation[0] = int(aimHoopLocation[0] / numOfPixelsInFirstHoop)
+    aimHoopLocation[1] = int(aimHoopLocation[1] / numOfPixelsInFirstHoop) + 82
+    ballHoopLocation[0] = int(ballHoopLocation[0] / numOfPixelsInSecondHoop)
+    ballHoopLocation[1] = int(ballHoopLocation[1] / numOfPixelsInSecondHoop) + 82
+
+    return aimHoopLocation, ballHoopLocation
+      </code></pre>
+      <h2>Determining shooting method</h2>
+      <p>
+        Once the script determines the hoop locations the program determines which throw method it will use.  
+        There are two throw methods.&nbsp; One in which the ball gets thrown right above the outer edge of the 
+        hoop and one where the ball gets throw as high as possible.&nbsp; Both use the <b>4 kinematic equations</b> to
+        determine the correct distance to pull back the ball.&nbsp; To use these equations I had to determine
+        the acceleration due to gravity.&nbsp; To figure this out I used a program called <b>scrcpy</b> which allows
+        me to view my Android screen on my pc.&nbsp; With that and enabling <b>developer tools</b> on my phone I was
+        able to run tests to determine the acceleration in pixels/second^2.&nbsp; The first throw method listed 
+        works by calculating the initial x and y velocities the ball needs for it's peak to be right above 
+        the edge of the hoop.&nbsp; It then uses these velocities to determine the angle that the ball needs to 
+        be pulled back at and the distance to pull back the ball.&nbsp; The second method works very similar to 
+        the first except that the initial y velocity is set to be the highest possible velocity the ball 
+        can achieve.&nbsp; This causes the ball to go as high as possible.&nbsp; (Note: The script doesn't currently
+        compensate for the movement of the hoop so the throw during that situation is random to whether it 
+        is successful or not).
+      </p>
+      <pre class="prettyprint"><code>
+def calcPullback(aimHoopLocation, ballHoopLocation):
+    #This function calculates how far to pull the ball and what direction.  It works by calculating what velocity the ball
+    # must start at to reach the closest corner of the hoop to aim at.  These velocities are then used to find the angle to 
+    # throw at.
+    
+    #Determine where to aim.  The aiming spot is at the corner of the hoop.
+    if(aimHoopLocation[0] - ballHoopLocation[0] >= 0):
+        peakThrowLocation = [aimHoopLocation[0] - 140, aimHoopLocation[1] - 222]
+    else:
+        peakThrowLocation = [aimHoopLocation[0] + 140, aimHoopLocation[1] - 222]
+    
+    accel = 2872  #This is the acceleration due to gravity in pixels/sec^2
+    delX = peakThrowLocation[0] - ballHoopLocation[0]  #change in x position
+    delY = peakThrowLocation[1] - ballHoopLocation[1]  #change in y position
+    
+    #Calculat initial velocity needed to have peak of throw at the corner of the hoop
+    yVel = -math.sqrt(-2 * accel * delY)
+    
+    #Time in air to said point
+    time = -yVel/accel
+    
+    #Velocity needed to reach point in given time
+    xVel = delX / time
+    
+    #Calculate throwing angle with respect to the vertical
+    throwAngle = math.atan(xVel/yVel)
+    print("Angle: " + str(math.degrees(throwAngle)))
+    
+    #Calculate how far to pull back on screen
+    yPullBack = delY / 1.7
+    #yPullBack = yVel * (.2474 - (.0740 / 800) * (2872 + yVel))
+    #yPullBack = yPullBack
+    xPullBack = math.tan(throwAngle) * yPullBack * .8
+    
+    return xPullBack, yPullBack
+    
+    
+def calcPullbackBigThrow(aimHoopLocation, ballHoopLocation):
+    #This function calculates how far to pull the ball and what direction.  It works by throwing the ball at a set y 
+    # velocity and using that to calculate the required x velocity.  This is then used to find the angle to drag the ball.
+    
+    yVel = -2800 #How hard to throw the ball in the y direction in
+    #yVel = -2733
+    accel = 2872  #This is the acceleration due to gravity in pixels/sec^2
+    delX = aimHoopLocation[0] - ballHoopLocation[0]  #change in x position
+    delY = aimHoopLocation[1] - ballHoopLocation[1]  #change in y position
+    
+    #Calculate the final y velocity before hitting the hoop to be aimed at
+    yVelFinal = math.sqrt(yVel ** 2 + 2 * accel * delY)
+    
+    #Calculate time in air using y final velocity
+    time = (yVelFinal - yVel) / accel
+    
+    #Calculate initial x velocity with time in air
+    xVel = delX / time
+    
+    #Calculate throwing angle with respect to the vertical
+    throwAngle = math.atan(xVel/yVel)
+    print("Angle: " + str(math.degrees(throwAngle)))
+    
+    #Calculate how far to pull back on screen
+    yPullBack = -700
+    #yPullBack = -676
+    xPullBack = math.tan(throwAngle) * yPullBack
+    
+    return xPullBack, yPullBack
+      </code></pre>
+      <h2>Taking the shot!</h2>
+      <p>
+        The final step is to use the pull back distances that were calculated and combine it with a command
+        to swipe the phone.&nbsp; This command is sent to the phone and the entire process continues for a bit.
+      </p>
+      <pre class="prettyprint"><code>
+#Issue swipe command to the phone with given pull back distances
+#device.shell("input touchscreen swipe x1 y1 x2 y2 dur")
+command = "input touchscreen swipe 700 800 " + str(700 - xPullBack) + " " + str(800 - yPullBack) + " 500"
+device.shell(command)
+      </code></pre>
+    </div>
+	</main>
+	
+	<footer class="site-footer h-card">
+
+	  <div class="wrapper">
+
+		<h2 class="footer-heading">My Website Links</h2>
+
+		<div class="footer-col-wrapper">
+		  <div class="footer-col footer-col-1">
+			<ul class="contact-list">
+			  <li class="p-name">Joseph Storf</li><li><a class="u-email" href="mailto:josstorf@gmail.com">josstorf@gmail.com</a></li></ul>
+		  </div>
+
+		  <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/jstorf2"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">jstorf2</span></a></li><li><a href="https://www.linkedin.com/in/joseph-storf-437b27184/"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg> <span class="username">Joseph Storf</span></a></li></ul></div>
+
+		  <div class="footer-col footer-col-3">
+			<p>Portfolio/Website to document projects that I have done.</p>
+		  </div>
+		</div>
+
+	  </div>
+
+	</footer>
+</body>
+</html>
